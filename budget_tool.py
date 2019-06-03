@@ -74,7 +74,7 @@ def get_total_of_single_month(data, args):
 	months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 	if args.month not in months:
-		raise Exception()
+		raise Exception('Invalid month!') # TODO: Make choices list in argparse
 	
 	total = get_total_per_month(data)
 
@@ -84,7 +84,22 @@ def get_total_of_single_month(data, args):
 		print('{} hasn\'t passed yet!'.format(args.month))
 
 def get_total_of_single_category(data, args):
-	pass
+
+	def convert_to_float(s):
+		return float(s.strip().replace('$', '').replace(',', ''))
+
+	if args.category not in data:
+		raise Exception('Invalid category!') # TODO: Make choices list in argparse
+
+	sub_data = data.get(args.category)
+	total = 0.0
+
+	for month_data in sub_data.values():
+		for company in month_data:
+			for transaction in month_data[company]:
+				total += convert_to_float(transaction[0])
+
+	print('You spent ${} on {} related expenses this year'.format(total, args.category))
 
 def main():
 
