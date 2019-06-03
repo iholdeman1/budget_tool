@@ -69,20 +69,40 @@ def get_total_per_month(data):
 
 	return monthly_data
 
+def get_total_of_single_month(data, args):
+	
+	months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+	if args.month not in months:
+		raise Exception()
+	
+	total = get_total_per_month(data)
+
+	if total[args.month] != 0.0:
+		print('You spent ${} in {}'.format(total[args.month], args.month))
+	else:
+		print('{} hasn\'t passed yet!'.format(args.month))
+
+def get_total_of_single_category(data, args):
+	pass
+
 def main():
 
 	parser = argparse.ArgumentParser(description='Runs Ian\'s budget analyzer')
 	subparsers = parser.add_subparsers(help='sub-command help')
 
 	month_parser = subparsers.add_parser('month', help='')
-	month_parser.set_defaults(func=foo)
+	month_parser.add_argument('month', type=str, help='')
+	month_parser.set_defaults(func=get_total_of_single_month)
 
 	category_parser = subparsers.add_parser('category', help='')
-	category_parser.set_defaults(func=foo)
+	category_parser.add_argument('category', type=str, help='')
+	category_parser.set_defaults(func=get_total_of_single_category)
 
 	data = read_data()
 
-	# monthly_stuff = get_total_per_month(data)
+	args = parser.parse_args()
+	args.func(data, args)
 	
 	# monthly_income = 3739.0
 	# total_net = []
