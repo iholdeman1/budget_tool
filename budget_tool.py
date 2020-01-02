@@ -3,13 +3,16 @@ import csv
 import sys
 from collections import OrderedDict
 
+MONTHLY_INCOME = 3739.0
+MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+# Function to read CSV file for data
 def read_data():
 	
-	months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 	data = OrderedDict()
 	headers = True
 
-	with open('test.csv', 'r') as csv_file:
+	with open('budget.csv', 'r') as csv_file:
 		reader = csv.reader(csv_file)
 		data_headers = []
 
@@ -19,7 +22,7 @@ def read_data():
 					if item:
 						item = item.decode("utf-8-sig").encode("utf-8")
 						data[item] = {}
-						for month in months:
+						for month in MONTHS:
 							data[item][month] = {}
 				headers = False
 				data_headers = data.keys()
@@ -48,17 +51,17 @@ def read_data():
 
 	return data
 
-def get_total_per_month(data):
+# Function to return a dictionary containing amount spent in each month
+def get_total_per_month(data): # TODO: fix months that haven't happened yet!
 
 	def convert_to_float(s):
 		return float(s.strip().replace('$', '').replace(',', ''))
 
-	months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 	monthly_data = OrderedDict()
-	for month in months:
+	for month in MONTHS:
 		monthly_data[month] = {}
 
-	for month in months:
+	for month in MONTHS:
 		total = 0.0
 		for key, val in data.iteritems():
 			if val.get(month):
@@ -69,12 +72,11 @@ def get_total_per_month(data):
 
 	return monthly_data
 
+# Function to get total amount spent in a specified month
 def get_total_of_single_month(data, args):
-	
-	months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-	if args.month not in months:
-		raise Exception('Invalid month!') # TODO: Make choices list in argparse
+	if args.month not in MONTHS:
+		raise Exception('Invalid month: {}'.format(args.month)) # TODO: Make choices list in argparse
 	
 	total = get_total_per_month(data)
 
@@ -83,13 +85,14 @@ def get_total_of_single_month(data, args):
 	else:
 		print('{} hasn\'t passed yet!'.format(args.month))
 
+# Function to get the cumulative total of a specified category
 def get_total_of_single_category(data, args):
 
 	def convert_to_float(s):
 		return float(s.strip().replace('$', '').replace(',', ''))
 
 	if args.category not in data:
-		raise Exception('Invalid category!') # TODO: Make choices list in argparse
+		raise Exception('Invalid category: {}'.format(args.category)) # TODO: Make choices list in argparse
 
 	sub_data = data.get(args.category)
 	total = 0.0
@@ -101,6 +104,24 @@ def get_total_of_single_category(data, args):
 
 	print('You spent ${} on {} related expenses this year'.format(total, args.category))
 
+# Function to break down average spending in each month
+def get_average_spent_in_each_month(data, args):
+
+	year_total = 0.0
+	month_count = 0
+
+	total = get_total_per_month(data)
+
+	for month in MONTHS:
+		if total[month] != 0.0:
+			net_saving = MONTHLY_INCOME - total[month]
+			print('You saved ${} in {}'.format(net_saving, month))
+			year_total += net_saving
+			month_count += 1
+
+	print('\nOn average you saved ${} per month this year!'.format(year_total/month_count))
+
+# Main
 def main():
 
 	parser = argparse.ArgumentParser(description='Runs Ian\'s budget analyzer')
@@ -114,25 +135,20 @@ def main():
 	category_parser.add_argument('category', type=str, help='')
 	category_parser.set_defaults(func=get_total_of_single_category)
 
+	average_parser = subparsers.add_parser('average', help='')
+	average_parser.set_defaults(func=get_average_spent_in_each_month)
+
 	data = read_data()
 
 	args = parser.parse_args()
-	args.func(data, args)
 	
-	# monthly_income = 3739.0
-	# total_net = []
+	try:
+		args.func(data, args)
+	except Exception as e:
+		print('{}'.format(e))
+		sys.exit(1)
 
-	# for key, val in monthly_stuff.iteritems():
-	# 	if val != 0.0:
-	# 		net = monthly_income-val
-	# 		total_net.append(net)
-	# 		print('You spent ${} in {}. Your net profit was {} after taxes.'.format(val, key, net))
-
-	# total_of_net = sum(total_net)
-	# length = len(total_net)
-
-	# print('On average, you bring home ${} per month!'.format(total_of_net/length))
-
+# Starter
 if __name__ == '__main__':
 	
 	main()
