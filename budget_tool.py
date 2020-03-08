@@ -121,17 +121,12 @@ def get_average_spent_in_each_month(data):
 
 	return totals, year_total/len(MONTHS)
 
-# Function to
-def get_month_breakdown_for_single_category(data, category):
-
-	return OrderedDict({month : obj.total for month, obj in data.get(category).months.iteritems()})
-
-# Function to
+# Function to breakdown a month's spending per category
 def get_category_breakdown_for_single_month(data, month):
 
 	return OrderedDict({category : obj.months.get(month).total for category, obj in data.iteritems()})
 
-# Function to
+# Function to breakdown a month's spending per expense
 def get_expense_breakdown_for_single_month(data, month):
 
 	expenses = set()
@@ -140,7 +135,7 @@ def get_expense_breakdown_for_single_month(data, month):
 
 	return OrderedDict({expense : sum([data.get(category).months.get(month).expense_totals.get(expense,0.0) for category in data.keys()]) for expense in expenses})
 
-# Function to
+# Function to breakdown a month's spending per company
 def get_company_breakdown_for_single_month(data, month):
 
 	companies = set()
@@ -149,7 +144,12 @@ def get_company_breakdown_for_single_month(data, month):
 
 	return OrderedDict({company : sum([data.get(category).months.get(month).company_totals.get(company,0.0) for category in data.keys()]) for company in companies})
 
-# Function to
+# Function to breakdown a category's spending per month
+def get_month_breakdown_for_single_category(data, category):
+
+	return OrderedDict({month : obj.total for month, obj in data.get(category).months.iteritems()})
+
+# Function to breakdown a category's spending per expense
 def get_expense_breakdown_for_single_category(data, category):
 
 	expenses = set()
@@ -158,7 +158,7 @@ def get_expense_breakdown_for_single_category(data, category):
 
 	return OrderedDict({expense : sum([month.expense_totals.get(expense,0.0) for month in data.get(category).months.values()]) for expense in expenses})
 
-# Function to
+# Function to breakdown a category's spending per company
 def get_company_breakdown_for_single_category(data, category):
 
 	companies = set()
@@ -167,7 +167,7 @@ def get_company_breakdown_for_single_category(data, category):
 
 	return OrderedDict({company : sum([month.company_totals.get(company,0.0) for month in data.get(category).months.values()]) for company in companies}) 
 
-# Function to
+# Function to handle the split arg
 def handle_split_arg(data, args, command, split_by):
 
 	if command == 'month' and split_by == 'category':
