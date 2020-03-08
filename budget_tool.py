@@ -55,7 +55,7 @@ def convert_to_float(s):
 def read_data():
 	
 	first_line_read = False
-	categories = {}
+	categories = OrderedDict()
 
 	with open('budget.csv', 'r') as csv_file:
 		reader = csv.reader(csv_file)
@@ -115,6 +115,14 @@ def get_average_spent_in_each_month(data):
 
 	return totals, year_total/len(MONTHS)
 
+def get_month_breakdown_for_single_category(data, category):
+
+	return OrderedDict({month : obj.total for month, obj in data.get(category).months.iteritems()})
+
+def get_category_breakdown_for_single_month(data, month):
+
+	return OrderedDict({category : obj.months.get(month).total for category, obj in data.iteritems()})
+
 # Intermediary function to handle arg parsing and print statements
 def handle_args(args):
 	
@@ -123,27 +131,37 @@ def handle_args(args):
 
 	# Expect month command
 	if 'month' in args:
+		if args.split:
+			breakdown = get_category_breakdown_for_single_month(data, args.month)
+			print('Your {} breakdown is as follows:'.format(args.month))
+			for category, total in breakdown.iteritems():
+				print('${0:-7.2f} spent on {1:5}'.format(total, category))
+
 		total = get_total_of_single_month(data, args.month)
 		if total == 0.0:
-			print('You either didn\'t spend any money or {} hasn\'t passed yet!'.format(args.month))
+			print('You either didn\'t spend any money or {} hasn\'t passed yet'.format(args.month))
 		else:
-			print('You spent ${} in {}'.format(total, args.month))
+			print('You spent ${0:.2f} total in {1:5}'.format(total, args.month))
 	
 	# Expect category command
 	elif 'category' in args:
 		if args.category not in data:
 			raise Exception('Invalid category: {}'.format(args.category))
 
-		total = get_total_of_single_category(data, args.category)
+		if args.split:
+			breakdown = get_month_breakdown_for_single_category(data, args.category)
+			for month, total in breakdown.iteritems():
+				print('${0:-7.2f} spent in {1:5}'.format(total, month))
 
+		total = get_total_of_single_category(data, args.category)
 		print('You spent ${} on {} related expenses this year'.format(total, args.category))
 	
 	# Expect average command
 	elif 'average' in args:
 		totals, average = get_average_spent_in_each_month(data)
 		for month, total in totals.iteritems():
-			print('You saved ${} in {}!'.format(total, month))
-		print('\nOn average you saved ${} per month this year!'.format(average))
+			print('You saved ${0:-7.2f} in {1:5}'.format(total, month))
+		print('\nOn average you saved ${0:.2f} per month this year'.format(average))
 
 # Main
 def main():
@@ -153,9 +171,11 @@ def main():
 
 	month_parser = subparsers.add_parser('month', help='')
 	month_parser.add_argument('month', type=str, choices=MONTHS, help='')
+	month_parser.add_argument('--split', required=False, action='store_true', help='')
 
 	category_parser = subparsers.add_parser('category', help='')
 	category_parser.add_argument('category', type=str, help='')
+	category_parser.add_argument('--split', required=False, action='store_true', help='')
 
 	average_parser = subparsers.add_parser('average', help='')
 	average_parser.set_defaults(average=True)
