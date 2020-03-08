@@ -22,6 +22,8 @@ class Month:
 	def __init__(self):
 		self.sales = []
 		self.total = 0.0
+		self.company_totals = OrderedDict()
+		self.expense_totals = OrderedDict()
 
 # Category class to contain month objects in that category
 class Category:
@@ -42,6 +44,8 @@ def print_data_as_json(data):
 			final_result[category][month]['Total'] = obj.months[month].total
 			final_result[category][month]['Sales'] = [(sale.company, str(sale.amount), sale.occurrence) 
 																								 for sale in obj.months[month].sales]
+			final_result[category][month]['Company Totals'] = obj.months[month].company_totals
+			final_result[category][month]['Expense Totals'] = obj.months[month].expense_totals
 			final_result[category]['Total'] = obj.total
 
 	with open('data.json', 'w') as f:
@@ -86,6 +90,8 @@ def read_data():
 						amount_as_float = convert_to_float(row[index+2])
 						category_month.sales.append(Sale(row[index+1],amount_as_float,row[index+3]))
 						category_month.total += amount_as_float
+						category_month.company_totals[row[index+1]] = category_month.company_totals.get(row[index+1],0.0)+amount_as_float
+						category_month.expense_totals[row[index+3]] = category_month.expense_totals.get(row[index+3],0.0)+amount_as_float
 						categories[data_categories[count]].total += amount_as_float
 
 					index += 4
@@ -115,13 +121,93 @@ def get_average_spent_in_each_month(data):
 
 	return totals, year_total/len(MONTHS)
 
+# Function to
 def get_month_breakdown_for_single_category(data, category):
 
 	return OrderedDict({month : obj.total for month, obj in data.get(category).months.iteritems()})
 
+# Function to
 def get_category_breakdown_for_single_month(data, month):
 
 	return OrderedDict({category : obj.months.get(month).total for category, obj in data.iteritems()})
+
+# Function to
+def get_expense_breakdown_for_single_month(data, month):
+
+	expenses = set()
+	for category in data.keys():
+		expenses = expenses | set(data.get(category).months.get(month).expense_totals.keys())
+
+	return OrderedDict({expense : sum([data.get(category).months.get(month).expense_totals.get(expense,0.0) for category in data.keys()]) for expense in expenses})
+
+# Function to
+def get_company_breakdown_for_single_month(data, month):
+
+	companies = set()
+	for category in data.keys():
+		companies = companies | set(data.get(category).months.get(month).company_totals.keys())
+
+	return OrderedDict({company : sum([data.get(category).months.get(month).company_totals.get(company,0.0) for category in data.keys()]) for company in companies})
+
+# Function to
+def get_expense_breakdown_for_single_category(data, category):
+
+	expenses = set()
+	for month in data.get(category).months.values():
+		expenses = expenses | set(month.expense_totals.keys())
+
+	return OrderedDict({expense : sum([month.expense_totals.get(expense,0.0) for month in data.get(category).months.values()]) for expense in expenses})
+
+# Function to
+def get_company_breakdown_for_single_category(data, category):
+
+	companies = set()
+	for month in data.get(category).months.values():
+		companies = companies | set(month.company_totals.keys())
+
+	return OrderedDict({company : sum([month.company_totals.get(company,0.0) for month in data.get(category).months.values()]) for company in companies}) 
+
+# Function to
+def handle_split_arg(data, args, command, split_by):
+
+	if command == 'month' and split_by == 'category':
+
+		breakdown = get_category_breakdown_for_single_month(data, args.month)
+		print('Your {} breakdown is as follows:'.format(args.month))
+		for category, total in breakdown.iteritems():
+			print('${0:-7.2f} spent on {1:5}'.format(total, category))
+
+	elif command == 'month' and split_by == 'expense':
+
+		breakdown = get_expense_breakdown_for_single_month(data, args.month)
+		print('Your {} breakdown is as follows:'.format(args.month))
+		for expense, total in breakdown.iteritems():
+			print('${0:-7.2f} spent on {1:5}'.format(total, expense))
+
+	elif command == 'month' and split_by == 'company':
+
+		breakdown = get_company_breakdown_for_single_month(data, args.month)
+		print('Your {} breakdown is as follows:'.format(args.month))
+		for company, total in breakdown.iteritems():
+			print('${0:-7.2f} spent on {1:5}'.format(total, company))
+
+	elif command == 'category' and split_by == 'month':
+
+		breakdown = get_month_breakdown_for_single_category(data, args.category)
+		for month, total in breakdown.iteritems():
+			print('${0:-7.2f} spent in {1:5}'.format(total, month))
+
+	elif command == 'category' and split_by == 'expense':
+
+		breakdown = get_expense_breakdown_for_single_category(data, args.category)
+		for expense, total in breakdown.iteritems():
+			print('${0:-7.2f} spent in {1:5}'.format(total, expense))
+
+	elif command == 'category' and split_by == 'company':
+
+		breakdown = get_company_breakdown_for_single_category(data, args.category)
+		for company, total in breakdown.iteritems():
+			print('${0:-7.2f} spent in {1:5}'.format(total, company))
 
 # Intermediary function to handle arg parsing and print statements
 def handle_args(args):
@@ -132,10 +218,7 @@ def handle_args(args):
 	# Expect month command
 	if 'month' in args:
 		if args.split:
-			breakdown = get_category_breakdown_for_single_month(data, args.month)
-			print('Your {} breakdown is as follows:'.format(args.month))
-			for category, total in breakdown.iteritems():
-				print('${0:-7.2f} spent on {1:5}'.format(total, category))
+			handle_split_arg(data, args, 'month', args.split)
 
 		total = get_total_of_single_month(data, args.month)
 		if total == 0.0:
@@ -149,9 +232,7 @@ def handle_args(args):
 			raise Exception('Invalid category: {}'.format(args.category))
 
 		if args.split:
-			breakdown = get_month_breakdown_for_single_category(data, args.category)
-			for month, total in breakdown.iteritems():
-				print('${0:-7.2f} spent in {1:5}'.format(total, month))
+			handle_split_arg(data, args, 'category', args.split)
 
 		total = get_total_of_single_category(data, args.category)
 		print('You spent ${} on {} related expenses this year'.format(total, args.category))
@@ -171,11 +252,11 @@ def main():
 
 	month_parser = subparsers.add_parser('month', help='')
 	month_parser.add_argument('month', type=str, choices=MONTHS, help='')
-	month_parser.add_argument('--split', required=False, action='store_true', help='')
+	month_parser.add_argument('--split', required=False, action='store', choices=['category', 'expense', 'company'], help='')
 
 	category_parser = subparsers.add_parser('category', help='')
 	category_parser.add_argument('category', type=str, help='')
-	category_parser.add_argument('--split', required=False, action='store_true', help='')
+	category_parser.add_argument('--split', required=False, action='store', choices=['month', 'expense', 'company'], help='')
 
 	average_parser = subparsers.add_parser('average', help='')
 	average_parser.set_defaults(average=True)
