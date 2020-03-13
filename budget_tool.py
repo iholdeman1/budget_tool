@@ -7,7 +7,6 @@ from json import dump
 
 ###########################################################
 # TODO
-# Add totals to print statements
 # Bring average back
 ###########################################################
 
@@ -152,6 +151,11 @@ def get_month_breakdown_for_single_category(data, category):
 	
 	return return_dict
 
+# Function to get the amount spent on a category in a single month
+def get_category_total_in_single_month(data, category, month):
+
+	return data[month]['Category Totals'].get(category)
+
 # Intermediary function to handle arg parsing and print statements
 def handle_args(args):
 
@@ -161,6 +165,7 @@ def handle_args(args):
 	# Read data
 	data = read_data()
 
+	# Detailed view of a month and category combo
 	if args.month and args.category:
 
 		companies, expenses = get_details_for_category_in_month(data, args.category, args.month)
@@ -175,35 +180,32 @@ def handle_args(args):
 		for expense, total in expenses.iteritems():
 			print('${0:-7.2f} was spent on {1:5} purchases'.format(total, expense))
 
+		overall_total = get_category_total_in_single_month(data, args.category, args.month)
+
+		print('\nOverall you spent ${} in {} on {}\n'.format(overall_total, args.month, args.category))
+
+	# Get amount spent in each category for a single month
 	elif args.month and args.category is None:
 		
 		breakdown = get_category_breakdown_for_single_month(data, args.month)
-		print('Your {} breakdown is as follows:'.format(args.month))
+		print('\nYour {} breakdown is as follows:\n'.format(args.month))
 		for category, total in breakdown.iteritems():
 			print('${0:-7.2f} spent on {1:5}'.format(total, category))
 
+		total = get_total_of_single_month(data, args.month)
+		print('\nOverall you spent ${} in {}\n'.format(total, args.month))
+
+	# Get amount spent in each month for a single category
 	elif args.month is None and args.category:
 		
+		print('\nYour {} breakdown is as follows:\n'.format(args.category))
+
 		breakdown = get_month_breakdown_for_single_category(data, args.category)
 		for month, total in breakdown.iteritems():
 			print('${0:-7.2f} spent in {1:5}'.format(total, month))
 
-	# 	total = get_total_of_single_month(data, args.month)
-	# 	if total == 0.0:
-	# 		print('You either didn\'t spend any money or {} hasn\'t passed yet'.format(args.month))
-	# 	else:
-	# 		print('You spent ${0:.2f} total in {1:5}'.format(total, args.month))
-	
-	# # Expect category command
-	# elif 'category' in args:
-	# 	if args.category not in data:
-	# 		raise Exception('Invalid category: {}'.format(args.category))
-
-	# 	if args.split:
-	# 		handle_split_arg(data, args, 'category', args.split)
-
-	# 	total = get_total_of_single_category(data, args.category)
-	# 	print('You spent ${} on {} related expenses this year'.format(total, args.category))
+		total = get_total_of_single_category(data, args.category)
+		print('\nOverall you spent ${} on {}\n'.format(total, args.category))
 	
 	# Expect average command
 	# elif 'average' in args:
