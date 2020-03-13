@@ -210,6 +210,7 @@ def handle_args(args):
 		total = get_total_of_single_category(data, args.category)
 		print('\nOverall you spent ${} on {}\n'.format(total, args.category))
 
+	# Error if they wish to analyze but didn't give any inputs
 	elif args.month is None and args.category is None:
 		raise Exception('Please give a month and/or category as an input!')
 
