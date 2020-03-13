@@ -4,6 +4,13 @@ import sys
 from collections import OrderedDict
 from json import dump
 
+
+###########################################################
+# TODO
+# Add totals to print statements
+# Bring average back
+###########################################################
+
 # Constants
 MONTHLY_INCOME = 3739.0
 MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -24,77 +31,49 @@ CATEGORIES = [
 'Uncategorized'
 ]
 
-# Transaction class to neatly contain sale details
-class Transaction:
-
-	def __init__(self, company, amount, occurrence):
-		self.company = company
-		self.amount = amount
-		self.occurrence = occurrence
-
-# Month class to contain sales objects and a total spent
-class Month:
-
-	def __init__(self):
-		
-		self.total = 0.0
-		self.categories = OrderedDict()
-		self.category_totals = OrderedDict()
-		
-		for category in CATEGORIES:
-			self.categories[category] = Category()
-			self.category_totals[category] = 0.0
-
-# Category class to contain month objects in that category
-class Category:
-
-	def __init__(self):
-		
-		self.company_totals = OrderedDict()
-		self.expense_totals = OrderedDict()
-		self.transactions = []
-
 # Helper function to print data in json format for debugging purposes
 def print_data_as_json(data):
-	
-	final_result = OrderedDict()
-
-	for month, data in data.iteritems():
-		final_result[month] = OrderedDict()
-		final_result[month]['Total'] = data.total
-		final_result[month]['Categories'] = OrderedDict()
-		final_result[month]['Category Totals'] = data.category_totals
-		for category in data.categories.keys():
-			final_result[month]['Categories'][category] = OrderedDict()
-			final_result[month]['Categories'][category]['Company Totals'] = data.categories[category].company_totals
-			final_result[month]['Categories'][category]['Expense Totals'] = data.categories[category].expense_totals
-			final_result[month]['Categories'][category]['Transactions'] = [(transaction.company, str(transaction.amount), transaction.occurrence) 
-																								 											for transaction in data.categories[category].transactions]
 
 	with open('data.json', 'w') as f:
-		dump(final_result, f, indent=2)
+		dump(data, f, indent=2)
 
 # Helper function to convert money strings to floats
 def convert_to_float(s):
+
 	return float(s.strip().replace('$', '').replace(',', ''))
+
+# Helper function to create default dictionary
+def create_default_dictionary():
+
+	data = OrderedDict()
+
+	for month in MONTHS:
+		data[month] = OrderedDict()
+		data[month]['Total'] = 0.0
+		data[month]['Categories'] = OrderedDict()
+		data[month]['Category Totals'] = OrderedDict()
+
+		for category in CATEGORIES:
+			data[month]['Category Totals'][category] = 0.0
+
+			data[month]['Categories'][category] = OrderedDict()
+			data[month]['Categories'][category]['Company Totals'] = OrderedDict()
+			data[month]['Categories'][category]['Expense Totals'] = OrderedDict()
+			data[month]['Categories'][category]['Transactions'] = []
+
+	return data
 
 # Function to read CSV file for data
 def read_data():
 	
 	first_line_read = False
-	data = OrderedDict()
 
-	for month in MONTHS:
-		data[month] = Month()
+	data = create_default_dictionary()
 
 	with open('budget.csv', 'r') as csv_file:
 		reader = csv.reader(csv_file)
 
 		headers = [item.decode("utf-8-sig").encode("utf-8") for item in next(reader) if item != '']
-
-		# for i in range(len(headers)):
-		# 	if headers[i] != CATEGORIES[i]:
-		# 		print(headers[i])
 
 		if headers != CATEGORIES:
 			raise Exception('Invalid category in CSV file!')
@@ -109,20 +88,22 @@ def read_data():
 					# row[index+1] == company
 					# row[index+2] == amount spent
 					# row[index+3] == expense type
-					# CATEGORIES[count] == category -- this assumes the CSV is accurate with our headers
+					# CATEGORIES[count] == category
 
 					# Set the fields in the month class
 					amount_as_float = convert_to_float(row[index+2])
-					data[row[index]].total += amount_as_float
-					data[row[index]].category_totals[CATEGORIES[count]] += amount_as_float
+					data[row[index]]['Total'] += amount_as_float
+					data[row[index]]['Category Totals'][CATEGORIES[count]] += amount_as_float
 
 					# Set the fields in the month's category class
-					month_category = data[row[index]].categories.get(CATEGORIES[count])
-					month_category.company_totals[row[index+1]] = month_category.company_totals.get(row[index+1],0.0)+amount_as_float
-					month_category.expense_totals[row[index+3]] = month_category.expense_totals.get(row[index+3],0.0)+amount_as_float
-					month_category.transactions.append(Transaction(row[index+1],amount_as_float,row[index+3]))
+					month_category = data[row[index]]['Categories'].get(CATEGORIES[count])
+					month_category['Company Totals'][row[index+1]] = month_category['Company Totals'].get(row[index+1],0.0) + amount_as_float
+					month_category['Expense Totals'][row[index+3]] = month_category['Expense Totals'].get(row[index+3],0.0) + amount_as_float
+					month_category.get('Transactions').append([row[index+1],amount_as_float,row[index+3]])
 					
 
+				# Each category should only contain at most 4 columns per row, so we increment by 4
+				# Count is just a nice way to increment through our categories list -- this assumes the CSV is accurate with our headers
 				index += 4
 				count += 1
 
@@ -131,17 +112,18 @@ def read_data():
 # Function to get total amount spent in a specified month
 def get_total_of_single_month(data, month):
 
-	return data[month].total
+	return data[month].get('Total')
 
 # Function to get the cumulative total of a specified category
 def get_total_of_single_category(data, category):
 
-	return sum([obj.category_totals.get(category) for obj in data.values()])
+	return sum([month_data['Category Totals'].get(category) for month_data in data.values()])
 
 # Function to get the company specifics of a specified month and category combo
 def get_details_for_category_in_month(data, category, month):
 
-	return (data[month].categories.get(category).company_totals, data[month].categories.get(category).expense_totals)
+	return (data[month]['Categories'].get(category).get('Company Totals'), 
+					data[month]['Categories'].get(category).get('Expense Totals'))
 
 # Function to break down average spending for the year and in each month
 # def get_average_spent_in_each_month(data):
@@ -158,7 +140,7 @@ def get_details_for_category_in_month(data, category, month):
 # Function to breakdown a month's spending per category
 def get_category_breakdown_for_single_month(data, month):
 
-	return data[month].category_totals
+	return data[month].get('Category Totals')
 
 # Function to breakdown a category's spending per month
 def get_month_breakdown_for_single_category(data, category):
@@ -166,7 +148,7 @@ def get_month_breakdown_for_single_category(data, category):
 	return_dict = OrderedDict()
 	
 	for month, obj in data.iteritems():
-		return_dict[month] = obj.category_totals.get(category)
+		return_dict[month] = obj['Category Totals'].get(category)
 	
 	return return_dict
 
