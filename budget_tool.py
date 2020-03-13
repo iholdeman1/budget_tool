@@ -1,14 +1,8 @@
+from collections import OrderedDict
+from json import dump
 import argparse
 import csv
 import sys
-from collections import OrderedDict
-from json import dump
-
-
-###########################################################
-# TODO
-# Bring average back
-###########################################################
 
 # Constants
 MONTHLY_INCOME = 3739.0
@@ -108,22 +102,6 @@ def read_data():
 
 	return data
 
-# Function to get total amount spent in a specified month
-def get_total_of_single_month(data, month):
-
-	return data[month].get('Total')
-
-# Function to get the cumulative total of a specified category
-def get_total_of_single_category(data, category):
-
-	return sum([month_data['Category Totals'].get(category) for month_data in data.values()])
-
-# Function to get the company specifics of a specified month and category combo
-def get_details_for_category_in_month(data, category, month):
-
-	return (data[month]['Categories'].get(category).get('Company Totals'), 
-					data[month]['Categories'].get(category).get('Expense Totals'))
-
 # Function to break down average spending for the year and in each month
 def get_average_spent_in_each_month(data):
 
@@ -135,6 +113,16 @@ def get_average_spent_in_each_month(data):
 			year_total += totals[month]
 
 	return totals, year_total/len(MONTHS)
+
+# Function to get total amount spent in a specified month
+def get_total_of_single_month(data, month):
+
+	return data[month].get('Total')
+
+# Function to get the cumulative total of a specified category
+def get_total_of_single_category(data, category):
+
+	return sum([month_data['Category Totals'].get(category) for month_data in data.values()])
 
 # Function to breakdown a month's spending per category
 def get_category_breakdown_for_single_month(data, month):
@@ -155,6 +143,12 @@ def get_month_breakdown_for_single_category(data, category):
 def get_category_total_in_single_month(data, category, month):
 
 	return data[month]['Category Totals'].get(category)
+
+# Function to get the company specifics of a specified month and category combo
+def get_details_for_category_in_month(data, category, month):
+
+	return (data[month]['Categories'].get(category).get('Company Totals'), 
+					data[month]['Categories'].get(category).get('Expense Totals'))
 
 # Intermediary function to handle arg parsing and print statements
 def handle_args(args):
